@@ -1,7 +1,8 @@
-import 'dart:math';
 import 'dart:collection';
-import 'package:flutter/widgets.dart';
+import 'dart:math';
+
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
 /// Wraps the [child] in a [AnimatedContainer] that adjusts its bottom [padding] to accommodate the on-screen keyboard.
 /// Unlike a [Scaffold], it only insets by the actual amount obscured by the keyboard.
@@ -150,7 +151,7 @@ class _KeyboardAvoiderState extends State<KeyboardAvoider> with WidgetsBindingOb
       box.size.height,
     );
 
-    // Calculate top of keyboard
+    //Calculate top of keyboard
     final mediaQuery = MediaQuery.of(context);
     final screenSize = mediaQuery.size;
     final screenInsets = mediaQuery.viewInsets;
@@ -211,16 +212,28 @@ class _KeyboardAvoiderState extends State<KeyboardAvoider> with WidgetsBindingOb
   /// If the focused object is covered by the keyboard, scroll to it.
   /// Otherwise do nothing.
   _scrollToObject(RenderObject object) {
-    // Calculate the offset needed to show the object in the [ScrollView]
-    // so that its bottom touches the top of the keyboard.
+    //Calculate Rect of object in scrollview
+    final box = object as RenderBox;
     final viewport = RenderAbstractViewport.of(object);
-    final offset = viewport.getOffsetToReveal(object, 1.0).offset + widget.focusPadding;
+    final offset = box.localToGlobal(Offset.zero, ancestor: viewport);
+    final rect = Rect.fromLTWH(
+      offset.dx,
+      offset.dy,
+      box.size.width,
+      box.size.height,
+    );
 
-    // If the object is covered by the keyboard, scroll to reveal it,
-    // and add [focusPadding] between it and top of the keyboard.
-    if (offset > _scrollController.position.pixels) {
-      _scrollController.position.moveTo(
-        offset,
+    //Calculate the top and bottom of the visible viewport
+    final position = _scrollController.position;
+    final viewportTop = position.pixels;
+    final viewportBottom = viewportTop + position.viewportDimension;
+
+    //If the object bottom is covered by the keyboard, scroll to it
+    //so that its bottom touches the top of the keyboard, plus any padding.
+    if (rect.bottom > viewportBottom) {
+      final newOffset = rect.bottom - position.viewportDimension + widget.focusPadding;
+      _scrollController.animateTo(
+        newOffset,
         duration: widget.duration,
         curve: widget.curve,
       );
